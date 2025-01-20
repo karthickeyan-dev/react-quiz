@@ -1,15 +1,19 @@
 import { useEffect, useReducer } from 'react';
-import Header from './Header';
-import Main from './main';
-import Loader from './Loader';
-import Error from './Error';
-import StartScreen from './StartScreen';
-import Question from './Question';
+import Header from './components/Header';
+import Main from './components/Main';
+import Loader from './components/Loader';
+import Error from './components/Error';
+import StartScreen from './components/StartScreen';
+import Question from './components/Question';
+import NextButton from './components/NextButton';
 
 const initialState = {
   questions: [],
   //loading, ready, active, finished, error
   status: 'loading',
+  index: 0,
+  answer: null,
+  points: 0,
 };
 
 function reducer(state, action) {
@@ -20,11 +24,27 @@ function reducer(state, action) {
       return { ...state, status: 'error' };
     case 'start':
       return { ...state, status: 'active' };
+    case 'setAnswer': {
+      const question = state.questions.at(state.index);
+      return {
+        ...state,
+        answer: action.payload,
+        points:
+          question.correctOption === action.payload
+            ? state.points + question.points
+            : state.points,
+      };
+    }
+    case 'nextQuestion':
+      return { ...state, index: state.index + 1, answer: null };
   }
 }
 
 export default function App() {
-  const [{ questions, status }, dispatch] = useReducer(reducer, initialState);
+  const [{ questions, status, index, answer, points }, dispatch] = useReducer(
+    reducer,
+    initialState
+  );
   const numQuestions = questions.length;
   useEffect(() => {
     fetch('http://localhost:9000/questions')
@@ -42,7 +62,16 @@ export default function App() {
         {status === 'ready' && (
           <StartScreen numQuestions={numQuestions} dispatch={dispatch} />
         )}
-        {status === 'active' && <Question />}
+        {status === 'active' && (
+          <>
+            <Question
+              question={questions.at(index)}
+              answer={answer}
+              dispatch={dispatch}
+            />
+            <NextButton answer={answer} dispatch={dispatch} />
+          </>
+        )}
       </Main>
     </div>
   );
